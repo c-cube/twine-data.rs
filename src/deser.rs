@@ -76,7 +76,15 @@ impl<'a> Decoder<'a> {
         Ok((rest + 15, consumed as Offset))
     }
 
-    pub(crate) fn deref(&self, mut off: Offset) -> Result<Offset> {
+    /// Dereference the offset.
+    ///
+    /// If the value at this offset is a pointer, follow the pointer;
+    /// repeat until it's not. This is done implicitly by most
+    /// other functions in this module, but it can be useful to do it
+    /// by hand in case there is caching done on decoding (eg. to memoize the
+    /// value decoded at a particular offset, it's better to dereference
+    /// the offset first).
+    pub fn deref(&self, mut off: Offset) -> Result<Offset> {
         loop {
             let (high, low) = self.first_byte(off);
             if high == 15 {
