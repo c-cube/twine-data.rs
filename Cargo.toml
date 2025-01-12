@@ -1,0 +1,16 @@
+[package]
+name = "twine-data"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bumpalo = {version="3.16", optional=true}
+
+[dev-dependencies]
+bumpalo = "3.16"
+proptest = "1.0"
+leb128 = "0.2"
+
+[features]
+
+bumpalo = ["dep:bumpalo"]
