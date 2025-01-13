@@ -158,12 +158,19 @@ mod tests {
             any::<i64>().prop_map(|b| Value::Int64(b)),
             any::<f64>().prop_map(|b| Value::Float(b)),
             ".*".prop_map(|s| Value::String(s)),
-            // prop::collection::vec(arb_json(), 0..10).prop_map(Json::Array),
-            // prop::collection::hash_map(".*", arb_json(), 0..10).prop_map(Json::Map),
+            prop::collection::vec(any::<u8>(), 0..100)
+                .prop_map(|v| Value::Bytes(v)),
         ];
-        leaf.prop_recursive(8, 256, 10, |inner| prop_oneof![
-            prop::collection::vec(inner.clone(), 0..10).prop_map(|v| Value::Array(v)),
-            prop::collection::vec((inner.clone(), inner.clone()), 0..10).prop_map(|map| Value::Map(map))
+        leaf.prop_recursive(8, 384, 100, |inner| prop_oneof![
+            prop::collection::vec(inner.clone(), 0..129)
+                .prop_map(|v| Value::Array(v)),
+            prop::collection::vec((inner.clone(), inner.clone()), 0..129)
+                .prop_map(|map| Value::Map(map)),
+            (any::<u32>(), inner.clone())
+                .prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
+            (any::<u32>(), prop::collection::vec(inner.clone(), 0..6))
+                .prop_map(|(c, args)| Value::Cstor(CstorIdx(c), args)),
+
         ]).boxed()
     }
 

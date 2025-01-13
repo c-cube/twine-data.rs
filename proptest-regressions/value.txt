@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 10669449e39ca5a696e1eea74c0b04a7e9982ab1d5f21f48d0c2abecb5532e33 # shrinks to v = Null
+cc 4170fb782df0ff8fd9a6c44a0826b3bcf32e5e21b4fe8a1b01d47a3721b62915 # shrinks to v = Array([Null, Null, Null, Null, Null, Null, Null, Null, Null, Null])
