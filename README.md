@@ -1,6 +1,8 @@
 
 # Twine-data
 
+[![build](https://github.com/c-cube/twine-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/c-cube/twine-rs/actions/workflows/rust.yml)
+
 This crate provides means to encode and decode data in the `twine-data` format.
 
 Twine is a relatively simple binary format that is designed to represent complex values that form [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
