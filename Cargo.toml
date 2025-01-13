@@ -10,6 +10,7 @@ bumpalo = {version="3.16", optional=true}
 bumpalo = "3.16"
 proptest = "1.0"
 leb128 = "0.2"
+serde_json = { version = "1.0.135", default-features = false, features = ["preserve_order", "std"] }
 
 [features]
 
