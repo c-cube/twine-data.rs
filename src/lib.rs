@@ -9,5 +9,7 @@ pub use deser::Decoder;
 pub use ser::Encoder;
 pub use types::{Error, Immediate, Result};
 
-#[cfg(feature = "bumpalo")]
 pub mod value;
+
+#[cfg(feature = "bumpalo")]
+pub mod value_flat;

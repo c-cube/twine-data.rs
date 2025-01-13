@@ -2,7 +2,7 @@
 //!
 //! Reading data from `twine` is done by offset.
 
-use crate::shallow_value::{ArrayCursor, DictCursor};
+use crate::shallow_value::{ArrayCursor, MapCursor};
 
 pub use super::shallow_value::ShallowValue;
 use super::types::*;
@@ -188,7 +188,7 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn dict_cursor(&'_ self, mut off: Offset, low: u8) -> Result<DictCursor<'a>> {
+    fn map_cursor(&'_ self, mut off: Offset, low: u8) -> Result<MapCursor<'a>> {
         let (len, n_bytes) = self.u64_with_low(off, low)?;
         if len > u32::MAX as u64 {
             return Err(Error {
@@ -198,7 +198,7 @@ impl<'a> Decoder<'a> {
         }
         off = off + 1 + n_bytes;
         let dec = self.clone();
-        Ok(DictCursor {
+        Ok(MapCursor {
             dec,
             off,
             n_items: len as u32,
@@ -356,8 +356,8 @@ impl<'a> Decoder<'a> {
                 Array(arr)
             }
             7 => {
-                let dict = self.dict_cursor(off, low)?;
-                Dict(dict)
+                let map = self.map_cursor(off, low)?;
+                Map(map)
             }
             8 => {
                 let (tag, off) = self.tag(off, low)?;
@@ -462,7 +462,7 @@ impl<'a> Decoder<'a> {
     pub fn get_dict(&self, off: Offset, res: &mut Vec<(Offset, Offset)>) -> Result<()> {
         res.clear();
         match self.get_shallow_value(off)? {
-            ShallowValue::Dict(d) => {
+            ShallowValue::Map(d) => {
                 for pair in d {
                     let (k, v) = pair?;
                     res.push((k, v))

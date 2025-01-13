@@ -11,7 +11,7 @@ pub type Offset = u64;
 pub type Tag = u32;
 
 /// A constructor index, used to encode `enum`s (sum types, optional, etc.) by their index.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct CstorIdx(pub u32);
 
 /// Immediate value, without nesting.
