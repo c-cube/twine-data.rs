@@ -91,6 +91,15 @@ impl<W: io::Write> Encoder<W> {
         }
     }
 
+    pub fn write_ref(&mut self, p: Offset) -> Result<Offset> {
+        let off = self.offset;
+        debug_assert!(off > p); // can only point to previous values.
+
+        // compute relative offset to `p`.
+        let n = off - p - 1;
+        self.first_byte_and_u64(14, n)
+    }
+
     pub fn write_pointer(&mut self, p: Offset) -> Result<Offset> {
         let off = self.offset;
         debug_assert!(off > p); // can only point to previous values.
@@ -151,6 +160,7 @@ impl<W: io::Write> Encoder<W> {
             Immediate::String(s) => self.write_string(s),
             Immediate::Bytes(b) => self.write_bytes(b),
             Immediate::Cstor0(c) => self.write_cstor0(c),
+            Immediate::Ref(p) => self.write_ref(p),
             Immediate::Pointer(p) => self.write_pointer(p),
         }
     }
@@ -250,6 +260,7 @@ impl<W: io::Write> Encoder<W> {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use proptest::prelude::*;
 
@@ -284,5 +295,28 @@ mod tests {
             let _ref_len = leb128::write::unsigned( &mut ref_v,n).unwrap();
             assert_eq!(&ref_v, &ours[0..ours_len])
         }
+    }
+
+    #[test]
+    fn test_ref() {
+        use crate::value::Value as V;
+        use crate::Decoder;
+
+        let mut res: Vec<u8> = vec![];
+        let mut enc = Encoder::new(&mut res);
+
+        let off1 = enc.write_string("hello").unwrap();
+        let off2 = enc.write_string("world").unwrap();
+        let v = V::Array(vec![V::Ref(off1), V::Ref(off2)]);
+        let off_v = crate::value::write_value(&mut enc, &v).unwrap();
+        assert_eq!(
+            &[69u8, 104, 101, 108, 108, 111, 69, 119, 111, 114, 108, 100, 98, 236, 231][..]
+                as &[u8],
+            res.as_slice()
+        );
+
+        let dec = Decoder::new(&res).unwrap();
+        let v2 = crate::value::read_value(&dec, off_v).unwrap();
+        assert_eq!(v, v2);
     }
 }

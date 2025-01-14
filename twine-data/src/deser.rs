@@ -293,7 +293,7 @@ impl<'a> Decoder<'a> {
                 })
             }
 
-            9 | 13 | 14 => {
+            9 | 13 => {
                 return Err(Error {
                     msg: "tag is reserved",
                     off,
@@ -309,7 +309,7 @@ impl<'a> Decoder<'a> {
                     off,
                 })
             }
-            15 => {
+            14 | 15 => {
                 let (_, n_bytes) = self.u64_with_low(off, low)?;
                 off + 1 + n_bytes
             }
@@ -366,6 +366,15 @@ impl<'a> Decoder<'a> {
             10 | 11 | 12 => {
                 let (cstor_idx, args) = self.cstor(off, high, low)?;
                 Cstor(cstor_idx, args)
+            }
+            14 => {
+                let (p, _) = self.u64_with_low(off, low)?;
+                // checked sub
+                let p = off.checked_sub(p as Offset + 1).ok_or_else(|| Error {
+                    msg: "ref underflow",
+                    off,
+                })?;
+                Imm(Immediate::Ref(p))
             }
             15 => unreachable!(), // we did deref!
             _ => {
@@ -548,7 +557,7 @@ mod tests {
             let dec = Decoder::new(&ref_v).unwrap();
             let (n2, len) = dec.leb128(0).unwrap();
             assert_eq!(n2, n);
-            assert_eq!(ref_len, len as usize)
+            assert_eq!(ref_len, len as usize);
         }
     }
 }

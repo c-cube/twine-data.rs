@@ -26,6 +26,8 @@ pub enum Value {
     /// A constructor with 0 arguments.
     Cstor0(CstorIdx),
     /// A reference to a full value (which comes at an earlier offset).
+    Ref(Offset),
+    /// An implicitly followed reference to a full value (which comes at an earlier offset).
     Pointer(Offset),
     Tag(Tag, Box<Value>),
     Array(Vec<Value>),
@@ -49,6 +51,7 @@ impl<'a> From<Immediate<'a>> for Value {
             Immediate::String(s) => Value::String(s.to_string()),
             Immediate::Bytes(bs) => Value::Bytes(bs.to_vec()),
             Immediate::Cstor0(cstor_idx) => Value::Cstor0(cstor_idx),
+            Immediate::Ref(p) => Value::Ref(p),
             Immediate::Pointer(p) => Value::Pointer(p),
         }
     }
@@ -105,6 +108,7 @@ fn write_value_or_imm<'a, W: io::Write>(
         Value::String(s) => Immediate::String(&s),
         Value::Bytes(vec) => Immediate::Bytes(&vec),
         Value::Cstor0(cstor_idx) => Immediate::Cstor0(*cstor_idx),
+        Value::Ref(p) => Immediate::Ref(*p),
         Value::Pointer(p) => Immediate::Pointer(*p),
         Value::Tag(tag, v) => {
             let v = write_value_or_imm(enc, v)?;
@@ -158,20 +162,19 @@ mod tests {
             any::<i64>().prop_map(|b| Value::Int64(b)),
             any::<f64>().prop_map(|b| Value::Float(b)),
             ".*".prop_map(|s| Value::String(s)),
-            prop::collection::vec(any::<u8>(), 0..100)
-                .prop_map(|v| Value::Bytes(v)),
+            prop::collection::vec(any::<u8>(), 0..100).prop_map(|v| Value::Bytes(v)),
         ];
-        leaf.prop_recursive(8, 384, 100, |inner| prop_oneof![
-            prop::collection::vec(inner.clone(), 0..129)
-                .prop_map(|v| Value::Array(v)),
-            prop::collection::vec((inner.clone(), inner.clone()), 0..129)
-                .prop_map(|map| Value::Map(map)),
-            (any::<u32>(), inner.clone())
-                .prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
-            (any::<u32>(), prop::collection::vec(inner.clone(), 0..6))
-                .prop_map(|(c, args)| Value::Cstor(CstorIdx(c), args)),
-
-        ]).boxed()
+        leaf.prop_recursive(8, 384, 100, |inner| {
+            prop_oneof![
+                prop::collection::vec(inner.clone(), 0..129).prop_map(|v| Value::Array(v)),
+                prop::collection::vec((inner.clone(), inner.clone()), 0..129)
+                    .prop_map(|map| Value::Map(map)),
+                (any::<u32>(), inner.clone()).prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
+                (any::<u32>(), prop::collection::vec(inner.clone(), 0..6))
+                    .prop_map(|(c, args)| Value::Cstor(CstorIdx(c), args)),
+            ]
+        })
+        .boxed()
     }
 
     proptest! {

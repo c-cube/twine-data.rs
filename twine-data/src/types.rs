@@ -32,7 +32,9 @@ pub enum Immediate<'a> {
     Bytes(&'a [u8]),
     /// A constructor with 0 arguments.
     Cstor0(CstorIdx),
-    /// A reference to a full value (which comes at an earlier offset).
+    /// An explicit reference to a full value (which comes at an earlier offset).
+    Ref(Offset),
+    /// An automatically followed reference to a full value (which comes at an earlier offset).
     Pointer(Offset),
 }
 
