@@ -161,12 +161,6 @@ impl<'a> Decoder<'a> {
 
     fn tag(&'_ self, mut off: Offset, low: u8) -> Result<(Tag, Offset)> {
         let (tag, n_bytes) = self.u64_with_low(off, low)?;
-        if tag > u32::MAX as u64 {
-            return Err(Error {
-                msg: "tag overflow",
-                off,
-            });
-        }
         off = off + 1 + n_bytes;
         Ok((tag as Tag, off))
     }

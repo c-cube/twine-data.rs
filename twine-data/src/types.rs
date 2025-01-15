@@ -8,7 +8,7 @@ use std::fmt::{Debug, Display};
 pub type Offset = u64;
 
 /// A tag, similar to a CBOR tag.
-pub type Tag = u32;
+pub type Tag = u64;
 
 /// A constructor index, used to encode `enum`s (sum types, optional, etc.) by their index.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]

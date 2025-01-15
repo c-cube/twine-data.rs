@@ -169,7 +169,7 @@ mod tests {
                 prop::collection::vec(inner.clone(), 0..129).prop_map(|v| Value::Array(v)),
                 prop::collection::vec((inner.clone(), inner.clone()), 0..129)
                     .prop_map(|map| Value::Map(map)),
-                (any::<u32>(), inner.clone()).prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
+                (any::<u64>(), inner.clone()).prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
                 (any::<u32>(), prop::collection::vec(inner.clone(), 0..6))
                     .prop_map(|(c, args)| Value::Variant(VariantIdx(c), args)),
             ]
