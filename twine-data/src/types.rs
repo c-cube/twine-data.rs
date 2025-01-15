@@ -12,7 +12,7 @@ pub type Tag = u32;
 
 /// A constructor index, used to encode `enum`s (sum types, optional, etc.) by their index.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
-pub struct CstorIdx(pub u32);
+pub struct VariantIdx(pub u32);
 
 /// Immediate value, without nesting.
 ///
@@ -30,8 +30,8 @@ pub enum Immediate<'a> {
     String(&'a str),
     /// Binary blob.
     Bytes(&'a [u8]),
-    /// A constructor with 0 arguments.
-    Cstor0(CstorIdx),
+    /// A variant with 0 arguments.
+    Variant0(VariantIdx),
     /// An explicit reference to a full value (which comes at an earlier offset).
     Ref(Offset),
     /// An automatically followed reference to a full value (which comes at an earlier offset).
@@ -45,10 +45,10 @@ impl<'a> Default for Immediate<'a> {
 }
 
 macro_rules! impl_from {
-    ($cstor:path, $typ:ty, $typ_real:ty) => {
+    ($variant:path, $typ:ty, $typ_real:ty) => {
         impl<'a> From<$typ_real> for Immediate<'a> {
             fn from(v: $typ_real) -> Immediate<'a> {
-                $cstor(v as $typ)
+                $variant(v as $typ)
             }
         }
     };

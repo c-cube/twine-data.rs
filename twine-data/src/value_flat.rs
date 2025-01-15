@@ -10,7 +10,7 @@ use std::io;
 use crate::{shallow_value::ShallowValue, Encoder};
 
 use super::{
-    types::{CstorIdx, Offset, Tag},
+    types::{Offset, Tag, VariantIdx},
     Decoder, Immediate, Result,
 };
 use bumpalo::Bump;
@@ -22,7 +22,7 @@ pub enum Value<'a, 'tmp> {
     Tag(Tag, &'tmp Value<'a, 'tmp>),
     Array(&'tmp [Value<'a, 'tmp>]),
     Map(&'tmp [(Value<'a, 'tmp>, Value<'a, 'tmp>)]),
-    Cstor(CstorIdx, &'tmp [Value<'a, 'tmp>]),
+    Variant(VariantIdx, &'tmp [Value<'a, 'tmp>]),
 }
 
 impl<'a, 'tmp> Default for Value<'a, 'tmp> {
@@ -64,14 +64,14 @@ pub fn get_value<'a, 'tmp>(
             }
             Map(pairs)
         }
-        ShallowValue::Cstor(cstor_idx, args) => {
+        ShallowValue::Variant(variant_idx, args) => {
             let local: Vec<Offset> = args.into_iter().collect::<Result<Vec<_>>>()?;
             let args: &'tmp mut [Value] =
                 alloc.alloc_slice_fill_copy(local.len(), Default::default());
             for (i, off) in local.into_iter().enumerate() {
                 args[i] = get_value(d, alloc, off)?;
             }
-            Cstor(cstor_idx, args)
+            Variant(variant_idx, args)
         }
     };
     Ok(v)
@@ -114,12 +114,12 @@ fn write_value_or_imm<'a, 'tmp, W: io::Write>(
             }
             Ok(enc.write_map(&res)?.into())
         }
-        Value::Cstor(cstor_idx, args) => {
+        Value::Variant(variant_idx, args) => {
             let mut args_res = Vec::with_capacity(args.len());
             for x in args {
                 args_res.push(write_value_or_imm(enc, *x)?);
             }
-            Ok(enc.write_cstor(cstor_idx, &args_res)?.into())
+            Ok(enc.write_variant(variant_idx, &args_res)?.into())
         }
     }
 }

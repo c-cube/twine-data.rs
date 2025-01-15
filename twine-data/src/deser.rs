@@ -205,16 +205,21 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn cstor(&'_ self, mut off: Offset, high: u8, low: u8) -> Result<(CstorIdx, ArrayCursor<'a>)> {
-        macro_rules! mk_cstor {
+    fn variant(
+        &'_ self,
+        mut off: Offset,
+        high: u8,
+        low: u8,
+    ) -> Result<(VariantIdx, ArrayCursor<'a>)> {
+        macro_rules! mk_variant {
             ($idx: expr) => {{
                 if $idx > u32::MAX as u64 {
                     return Err(Error {
-                        msg: "cstor overflow",
+                        msg: "variant overflow",
                         off,
                     });
                 }
-                CstorIdx($idx as u32)
+                VariantIdx($idx as u32)
             }};
         }
 
@@ -222,7 +227,7 @@ impl<'a> Decoder<'a> {
         if high == 10 {
             let (idx, _) = self.u64_with_low(off, low)?;
             Ok((
-                mk_cstor!(idx),
+                mk_variant!(idx),
                 ArrayCursor {
                     dec,
                     off,
@@ -236,14 +241,14 @@ impl<'a> Decoder<'a> {
                 off: off + 1 + n_bytes_idx,
                 n_items: 1,
             };
-            Ok((mk_cstor!(idx), arr))
+            Ok((mk_variant!(idx), arr))
         } else if high == 12 {
             let (idx, n_bytes_idx) = self.u64_with_low(off, low)?;
             off = off + 1 + n_bytes_idx;
             let (n_items, n_bytes_n_items) = self.leb128(off)?;
             if n_items > u32::MAX as u64 {
                 return Err(Error {
-                    msg: "overflow in cstor arguments",
+                    msg: "overflow in variant arguments",
                     off,
                 });
             }
@@ -251,10 +256,10 @@ impl<'a> Decoder<'a> {
 
             off = off + n_bytes_n_items as Offset;
             let arr = ArrayCursor { off, n_items, dec };
-            Ok((mk_cstor!(idx), arr))
+            Ok((mk_variant!(idx), arr))
         } else {
             Err(Error {
-                msg: "expected cstor",
+                msg: "expected variant",
                 off,
             })
         }
@@ -305,7 +310,7 @@ impl<'a> Decoder<'a> {
             }
             11 | 12 => {
                 return Err(Error {
-                    msg: "cannot skip over constructor",
+                    msg: "cannot skip over variant",
                     off,
                 })
             }
@@ -364,8 +369,8 @@ impl<'a> Decoder<'a> {
                 Tag(tag, off)
             }
             10 | 11 | 12 => {
-                let (cstor_idx, args) = self.cstor(off, high, low)?;
-                Cstor(cstor_idx, args)
+                let (variant_idx, args) = self.variant(off, high, low)?;
+                Variant(variant_idx, args)
             }
             14 => {
                 let (p, _) = self.u64_with_low(off, low)?;
@@ -498,22 +503,22 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    /// Read a constructor value. The constructor index is returned,
+    /// Read a variant value. The variant index is returned,
     /// and (the offsets of the) arguments are pushed into `args`.
     ///
     /// `args` is cleared first.
-    pub fn get_cstor(&self, off: Offset, args: &mut Vec<Offset>) -> Result<CstorIdx> {
+    pub fn get_variant(&self, off: Offset, args: &mut Vec<Offset>) -> Result<VariantIdx> {
         args.clear();
 
         match self.get_shallow_value(off)? {
-            ShallowValue::Cstor(cstor_idx, c_args) => {
+            ShallowValue::Variant(variant_idx, c_args) => {
                 for off in c_args {
                     args.push(off?)
                 }
-                Ok(cstor_idx)
+                Ok(variant_idx)
             }
             _ => Err(Error {
-                msg: "expected cstor",
+                msg: "expected variant",
                 off,
             }),
         }

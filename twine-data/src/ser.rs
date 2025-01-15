@@ -6,7 +6,7 @@
 use std::io;
 
 use crate::{
-    types::{CstorIdx, Offset, Tag},
+    types::{Offset, Tag, VariantIdx},
     Immediate,
 };
 
@@ -143,9 +143,9 @@ impl<W: io::Write> Encoder<W> {
         Ok(off)
     }
 
-    /// Write a nullary constructor.
+    /// Write a nullary variant.
     #[inline(always)]
-    pub fn write_cstor0(&mut self, c: CstorIdx) -> Result<Offset> {
+    pub fn write_variant0(&mut self, c: VariantIdx) -> Result<Offset> {
         self.first_byte_and_u64(10, c.0 as u64)
     }
 
@@ -159,7 +159,7 @@ impl<W: io::Write> Encoder<W> {
             Immediate::Float(f) => self.write_f64(f),
             Immediate::String(s) => self.write_string(s),
             Immediate::Bytes(b) => self.write_bytes(b),
-            Immediate::Cstor0(c) => self.write_cstor0(c),
+            Immediate::Variant0(c) => self.write_variant0(c),
             Immediate::Ref(p) => self.write_ref(p),
             Immediate::Pointer(p) => self.write_pointer(p),
         }
@@ -205,10 +205,14 @@ impl<W: io::Write> Encoder<W> {
         Ok(off)
     }
 
-    /// Write a constructor `c` with arguments `args`.
-    pub fn write_cstor(&mut self, c: CstorIdx, args: &[Immediate]) -> Result<Immediate<'static>> {
+    /// Write a variant `c` with arguments `args`.
+    pub fn write_variant(
+        &mut self,
+        c: VariantIdx,
+        args: &[Immediate],
+    ) -> Result<Immediate<'static>> {
         match args.len() {
-            0 => Ok(Immediate::Cstor0(c)),
+            0 => Ok(Immediate::Variant0(c)),
             1 => {
                 let off = self.first_byte_and_u64(11, c.0 as u64)?;
                 let _ = self.write_immediate(args[0])?;

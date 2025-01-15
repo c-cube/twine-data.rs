@@ -1,7 +1,7 @@
 //! Shallow values.
 
 use crate::{
-    types::{CstorIdx, Offset, Tag},
+    types::{VariantIdx, Offset, Tag},
     Decoder, Immediate, Result,
 };
 
@@ -14,7 +14,7 @@ pub enum ShallowValue<'a> {
     Tag(Tag, Offset),
     Array(ArrayCursor<'a>),
     Map(MapCursor<'a>),
-    Cstor(CstorIdx, ArrayCursor<'a>),
+    Variant(VariantIdx, ArrayCursor<'a>),
 }
 
 #[derive(Debug, Clone)]

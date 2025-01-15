@@ -8,7 +8,7 @@ use std::io;
 use crate::{shallow_value::ShallowValue, Encoder};
 
 use super::{
-    types::{CstorIdx, Offset, Tag},
+    types::{Offset, Tag, VariantIdx},
     Decoder, Immediate, Result,
 };
 
@@ -23,8 +23,8 @@ pub enum Value {
     String(String),
     /// Binary blob.
     Bytes(Vec<u8>),
-    /// A constructor with 0 arguments.
-    Cstor0(CstorIdx),
+    /// A variant with 0 arguments.
+    Variant0(VariantIdx),
     /// A reference to a full value (which comes at an earlier offset).
     Ref(Offset),
     /// An implicitly followed reference to a full value (which comes at an earlier offset).
@@ -32,7 +32,7 @@ pub enum Value {
     Tag(Tag, Box<Value>),
     Array(Vec<Value>),
     Map(Vec<(Value, Value)>),
-    Cstor(CstorIdx, Vec<Value>),
+    Variant(VariantIdx, Vec<Value>),
 }
 
 impl Default for Value {
@@ -50,7 +50,7 @@ impl<'a> From<Immediate<'a>> for Value {
             Immediate::Float(f) => Value::Float(f),
             Immediate::String(s) => Value::String(s.to_string()),
             Immediate::Bytes(bs) => Value::Bytes(bs.to_vec()),
-            Immediate::Cstor0(cstor_idx) => Value::Cstor0(cstor_idx),
+            Immediate::Variant0(variant_idx) => Value::Variant0(variant_idx),
             Immediate::Ref(p) => Value::Ref(p),
             Immediate::Pointer(p) => Value::Pointer(p),
         }
@@ -78,13 +78,13 @@ pub fn read_value(d: &Decoder, off: Offset) -> Result<Value> {
             }
             Value::Map(map_v)
         }
-        ShallowValue::Cstor(cstor_idx, args) => {
+        ShallowValue::Variant(variant_idx, args) => {
             let mut args_v = Vec::with_capacity(args.len());
             for a in args {
                 let a = a?;
                 args_v.push(read_value(d, a)?)
             }
-            Value::Cstor(cstor_idx, args_v)
+            Value::Variant(variant_idx, args_v)
         }
     };
     Ok(v)
@@ -107,7 +107,7 @@ fn write_value_or_imm<'a, W: io::Write>(
         Value::Float(f) => Immediate::Float(*f),
         Value::String(s) => Immediate::String(&s),
         Value::Bytes(vec) => Immediate::Bytes(&vec),
-        Value::Cstor0(cstor_idx) => Immediate::Cstor0(*cstor_idx),
+        Value::Variant0(variant_idx) => Immediate::Variant0(*variant_idx),
         Value::Ref(p) => Immediate::Ref(*p),
         Value::Pointer(p) => Immediate::Pointer(*p),
         Value::Tag(tag, v) => {
@@ -132,12 +132,12 @@ fn write_value_or_imm<'a, W: io::Write>(
             }
             enc.write_map(&res)?.into()
         }
-        Value::Cstor(cstor_idx, args) => {
+        Value::Variant(variant_idx, args) => {
             let mut args_res = Vec::with_capacity(args.len());
             for x in args {
                 args_res.push(write_value_or_imm(enc, x)?);
             }
-            enc.write_cstor(*cstor_idx, &args_res)?.into()
+            enc.write_variant(*variant_idx, &args_res)?.into()
         }
     };
     Ok(imm)
@@ -171,7 +171,7 @@ mod tests {
                     .prop_map(|map| Value::Map(map)),
                 (any::<u32>(), inner.clone()).prop_map(|(tag, sub)| Value::Tag(tag, Box::new(sub))),
                 (any::<u32>(), prop::collection::vec(inner.clone(), 0..6))
-                    .prop_map(|(c, args)| Value::Cstor(CstorIdx(c), args)),
+                    .prop_map(|(c, args)| Value::Variant(VariantIdx(c), args)),
             ]
         })
         .boxed()
